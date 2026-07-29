@@ -1,0 +1,39 @@
+#!/bin/sh
+set -eu
+
+destination=
+url=
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --output)
+      destination=$2
+      shift 2
+      ;;
+    --proto | --tlsv1.2)
+      if [ "$1" = "--proto" ]; then
+        shift 2
+      else
+        shift
+      fi
+      ;;
+    --fail | --location | --silent | --show-error)
+      shift
+      ;;
+    *)
+      url=$1
+      shift
+      ;;
+  esac
+done
+
+[ -n "$destination" ] || {
+  printf 'fake curl received no output path\n' >&2
+  exit 2
+}
+[ -n "$url" ] || {
+  printf 'fake curl received no URL\n' >&2
+  exit 2
+}
+
+asset=${url##*/}
+cp "${AZTOP_TEST_RELEASE_DIRECTORY:?}/${asset}" "$destination"

@@ -1,0 +1,17 @@
+# Copy this file to ~/.aztop/config.toml.
+#
+# Blank selectors use the current Azure CLI subscription and the first visible
+# resource group. Command-line --subscription and --resource-group values
+# override these defaults for one run.
+subscription = ""
+resource_group = ""
+
+# Format: <hours>h/<minutes>m. Common dashboard windows are:
+# "1h/1m", "6h/5m", and "24h/15m".
+window = "1h/1m"
+
+refresh_seconds = 30
+max_workers = 4
+max_metric_resources = 16
+cache_enabled = true
+cache_ttl_seconds = 86400

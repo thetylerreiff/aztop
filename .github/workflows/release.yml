@@ -1,0 +1,140 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_VERSION: 1.88.0
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+          - os: macos-15-intel
+            target: x86_64-apple-darwin
+          - os: macos-15
+            target: aarch64-apple-darwin
+
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Validate release ref and version
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag_commit="$(git rev-parse "${GITHUB_REF_NAME}^{commit}")"
+          git merge-base --is-ancestor "$tag_commit" origin/main
+          tag_version="${GITHUB_REF_NAME#v}"
+          package_version="$(
+            cargo metadata --no-deps --format-version 1 |
+              jq -r '.packages[] | select(.name == "aztop") | .version'
+          )"
+          test "$tag_version" = "$package_version"
+
+      - name: Install Rust toolchain
+        run: |
+          rustup toolchain install "$RUST_VERSION" --profile minimal
+          rustup target add --toolchain "$RUST_VERSION" "${{ matrix.target }}"
+
+      - name: Test tagged source
+        run: cargo +"$RUST_VERSION" test --all-targets --locked --target "${{ matrix.target }}"
+
+      - name: Build locked release binary
+        run: cargo +"$RUST_VERSION" build --release --locked --target "${{ matrix.target }}"
+
+      - name: Package release archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          ./scripts/package-release.sh "${{ matrix.target }}" "$version" dist
+
+      - name: Upload release archive
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-${{ matrix.target }}
+          path: dist/aztop-${{ matrix.target }}.tar.gz
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    name: Attest and publish GitHub Release
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Download release archives
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
+        with:
+          pattern: release-*
+          path: dist
+          merge-multiple: true
+
+      - name: Validate release set and generate checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          package_version="$(
+            cargo metadata --no-deps --format-version 1 |
+              jq -r '.packages[] | select(.name == "aztop") | .version'
+          )"
+          test "$version" = "$package_version"
+          for target in \
+            x86_64-unknown-linux-gnu \
+            aarch64-unknown-linux-gnu \
+            x86_64-apple-darwin \
+            aarch64-apple-darwin
+          do
+            test -f "dist/aztop-${target}.tar.gz"
+          done
+          cp scripts/install.sh dist/install.sh
+          chmod 0755 dist/install.sh
+          (
+            cd dist
+            sha256sum aztop-*.tar.gz >SHA256SUMS
+          )
+
+      - name: Attest release assets
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
+        with:
+          subject-path: dist/*
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --verify-tag \
+            --title "aztop ${GITHUB_REF_NAME#v}" \
+            --generate-notes

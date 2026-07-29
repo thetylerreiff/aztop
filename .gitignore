@@ -1,0 +1,20 @@
+/target/
+/dist/
+/outputs/
+/work/
+.DS_Store
+*.log
+
+# Local secrets and developer overrides.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Local editor and coverage output.
+.idea/
+.vscode/
+coverage/

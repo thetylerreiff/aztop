@@ -1,0 +1,65 @@
+name: Bug report
+description: Report a reproducible aztop defect without sensitive Azure data.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not include credentials, subscription or tenant IDs, ARM IDs, raw
+        logs, customer data, or internal resource names. Use synthetic and
+        redacted examples. Report security issues privately through SECURITY.md.
+  - type: input
+    id: version
+    attributes:
+      label: aztop version
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - macOS arm64
+        - macOS x86-64
+        - Linux arm64
+        - Linux x86-64
+        - Other source build
+    validations:
+      required: true
+  - type: input
+    id: azure
+    attributes:
+      label: Azure cloud and CLI version
+      description: Do not include account, tenant, or subscription identifiers.
+      placeholder: "AzureCloud; azure-cli 2.x"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Use synthetic names and include the exact safe key sequence or CLI flags.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Redact terminal captures and table/JSON output before attaching them.
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Data-safety confirmation
+      options:
+        - label: I removed credentials, IDs, raw logs, customer data, and private resource names.
+          required: true

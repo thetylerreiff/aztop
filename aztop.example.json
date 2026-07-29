@@ -1,0 +1,18 @@
+{
+  "subscription": "",
+  "resource_group": "",
+  "refresh_seconds": 30,
+  "window": "1h/1m",
+  "max_workers": 4,
+  "max_metric_resources": 16,
+  "cache_enabled": true,
+  "cache_ttl_seconds": 86400,
+  "watchlist": [
+    {
+      "name": "api",
+      "type": "microsoft.web/sites",
+      "alias": "API",
+      "expect_control": "running"
+    }
+  ]
+}

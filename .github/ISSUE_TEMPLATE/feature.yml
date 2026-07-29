@@ -1,0 +1,33 @@
+name: Feature request
+description: Propose a focused operator workflow or bounded read-only signal.
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Operator problem
+      description: What question should an operator answer faster?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed experience
+      description: Describe the panel, navigation, output, or data semantic.
+    validations:
+      required: true
+  - type: textarea
+    id: azure
+    attributes:
+      label: Azure read shape
+      description: If data is involved, identify the bounded aggregate or metadata-only read. Never include real data.
+  - type: checkboxes
+    id: boundary
+    attributes:
+      label: Safety boundary
+      options:
+        - label: This proposal does not require cloud mutation or credential-bearing reads.
+          required: true
+        - label: This proposal does not require arbitrary KQL, raw logs, payloads, or tenant/customer data.
+          required: true

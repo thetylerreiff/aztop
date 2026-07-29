@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_VERSION: 1.88.0
+
+jobs:
+  quality:
+    name: Format, lint, test, and package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install Rust toolchain
+        run: |
+          rustup toolchain install "$RUST_VERSION" \
+            --profile minimal \
+            --component clippy,rustfmt
+          rustup target add --toolchain "$RUST_VERSION" x86_64-unknown-linux-gnu
+
+      - name: Check formatting
+        run: cargo +"$RUST_VERSION" fmt --check
+
+      - name: Run Clippy
+        run: cargo +"$RUST_VERSION" clippy --all-targets --locked -- -D warnings
+
+      - name: Run tests
+        run: cargo +"$RUST_VERSION" test --all-targets --locked
+
+      - name: Build release binary
+        run: cargo +"$RUST_VERSION" build --release --locked --target x86_64-unknown-linux-gnu
+
+      - name: Validate release packaging
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(
+            cargo +"$RUST_VERSION" metadata --no-deps --format-version 1 |
+              jq -r '.packages[] | select(.name == "aztop") | .version'
+          )"
+          ./scripts/package-release.sh x86_64-unknown-linux-gnu "$version" dist
+
+      - name: Validate installer
+        run: ./scripts/test-installer.sh
+
+      - name: Lint shell scripts
+        run: shellcheck aztop scripts/*.sh scripts/testdata/*
+
+  macos:
+    name: Test macOS arm64
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install Rust toolchain
+        run: rustup toolchain install "$RUST_VERSION" --profile minimal
+
+      - name: Run tests
+        run: cargo +"$RUST_VERSION" test --all-targets --locked
+
+      - name: Validate installer
+        run: ./scripts/test-installer.sh
+
+  dependencies:
+    name: Dependency security and license policy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install audit tools
+        run: |
+          cargo install cargo-audit --version 0.22.2 --locked
+          cargo install cargo-deny --version 0.20.2 --locked
+
+      - name: Check RustSec advisories
+        run: cargo audit --deny warnings
+
+      - name: Check dependency policy
+        run: cargo deny check

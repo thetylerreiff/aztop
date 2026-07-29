@@ -1,0 +1,11 @@
+#!/bin/sh
+set -eu
+
+project_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
+
+if ! command -v cargo >/dev/null 2>&1; then
+  echo "error: cargo is required by the development launcher; install the binary with 'cargo install --path . --locked'" >&2
+  exit 127
+fi
+
+exec cargo run --quiet --locked --manifest-path "$project_dir/Cargo.toml" -- "$@"
