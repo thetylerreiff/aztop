@@ -44,7 +44,7 @@ chmod 0755 "${fake_bin}/curl"
 PATH="${fake_bin}:${PATH}" \
   AZTOP_TEST_RELEASE_DIRECTORY="$release_directory" \
   AZTOP_INSTALL_DIR="$install_directory" \
-  AZTOP_VERSION="v1.0.0" \
+  AZTOP_VERSION="v0.1.0" \
   sh "${project_directory}/scripts/install.sh"
 
 output=$("${install_directory}/aztop")
@@ -57,7 +57,7 @@ printf 'tamper' >>"${release_directory}/${archive}"
 if PATH="${fake_bin}:${PATH}" \
   AZTOP_TEST_RELEASE_DIRECTORY="$release_directory" \
   AZTOP_INSTALL_DIR="${temporary_directory}/tampered-install" \
-  AZTOP_VERSION="v1.0.0" \
+  AZTOP_VERSION="v0.1.0" \
   sh "${project_directory}/scripts/install.sh" >/dev/null 2>&1; then
   printf 'installer accepted an archive with an invalid checksum\n' >&2
   exit 1

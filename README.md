@@ -38,7 +38,7 @@ sh /tmp/install-aztop.sh
 Pin a release or choose another install directory:
 
 ```sh
-AZTOP_VERSION=v1.0.0 AZTOP_INSTALL_DIR="$HOME/bin" \
+AZTOP_VERSION=v0.1.0 AZTOP_INSTALL_DIR="$HOME/bin" \
   sh /tmp/install-aztop.sh
 ```
 
